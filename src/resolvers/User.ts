@@ -1,5 +1,9 @@
 export const User = {
-	cvs: (parent, _args, { db }, _info) => {
-		return db.cvs.filter((cv) => cv.user === parent.id);
+	cvs: (parent, _args, { prisma }, _info) => {
+		return prisma.cv.findMany({
+			where:{
+				ownerId: parent.id
+			}
+		})
 	}
 };

@@ -5,15 +5,15 @@ import { Query } from "./resolvers/Query";
 import { Skill } from "./resolvers/Skill";
 import { User } from "./resolvers/User";
 import { Cv } from "./resolvers/Cv";
-import { db } from "./db/db";
 import { Mutation } from "./resolvers/Mutation";
 import { Subscription } from "./resolvers/Subscription";
+import {prisma }    from "./db/db";
 
 const pubSub = createPubSub();
 const fs =require("fs");
 const path=require("path");
 type AppContext = {
-    db: typeof db;
+    prisma: typeof prisma;
     pubSub: typeof pubSub;
 };
 
@@ -32,7 +32,7 @@ resolvers: {
 
 });
 
-const yoga = createYoga({schema,context: () => ({ db, pubSub })});
+const yoga = createYoga({schema,context: () => ({ prisma , pubSub })});
 const server = createServer(yoga);
 server.listen(4000, () => {
 console.info(`

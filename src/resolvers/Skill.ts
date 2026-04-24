@@ -1,5 +1,9 @@
 export const Skill = {
-	cvs: (parent, _args, { db }, _info) => {
-		return db.cvs.filter((cv) => cv.skills?.includes(parent.id));
-	},
-};
+    cvs: async (parent, _args, { prisma }, _info) => {
+        const cvSkills = await prisma.cvSkill.findMany({
+            where: { skillId: parent.id },
+            include: { cv: true }
+        });
+        return cvSkills.map(cvSkill => cvSkill.cv);
+    }
+}
