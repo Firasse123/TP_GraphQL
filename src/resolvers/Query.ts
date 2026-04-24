@@ -1,3 +1,5 @@
+import { ensureSkillExists, ensureUserExists } from "./validation";
+
 export const Query = {
     hello: () => "Hello World!",
 
@@ -33,11 +35,11 @@ export const Query = {
     },
 
     getUserById: async (parent, { id }, { prisma }, info) => {
+        await ensureUserExists(prisma, id);
         const user = await prisma.user.findUnique({
             where: { id },
             include: { cvs: true }
         });
-        if (!user) throw new Error(`User with id ${id} not found`);
         return user;
     },
 
@@ -46,10 +48,6 @@ export const Query = {
     },
 
     getSkillById: async (parent, { id }, { prisma }, info) => {
-        const skill = await prisma.skill.findUnique({
-            where: { id }
-        });
-        if (!skill) throw new Error(`Skill with id ${id} not found`);
-        return skill;
+        await ensureSkillExists(prisma, id);
     }
 }

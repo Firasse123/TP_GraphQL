@@ -1,24 +1,12 @@
-import { create } from "node:domain";
+import { ensureSkillsExist, ensureUserExists } from "./validation";
 
 export const Mutation={
     CreateCv:async (parent,{input},{prisma,pubSub},info)=>{
         const { name, age, job, userId, skillsIds = [] } = input;
 
-        const user=await prisma.user.findUnique({
-            where:{id:userId}
-        })
-    
-        if(!user){
-            throw new Error(`User with id ${userId} not found`);
-        }
-        for (const skillId of skillsIds) {
-            const skill=await prisma.skill.findUnique({
-                where:{id:skillId}
-            })
-            if(!skill){
-                throw new Error(`Skill with id ${skillId} not found`);
-            }
-        }
+        await ensureUserExists(prisma, userId);
+        await ensureSkillsExist(prisma, skillsIds);
+
         const newCv=await prisma.cv.create({
             data:{
                 name,
@@ -38,7 +26,7 @@ export const Mutation={
     },
 
     UpdateCv:async(parent,{id,input},{prisma,pubSub},info)=>{
-        const { name, age, job, userId, skillsIds = [] } = input;
+        const { name, age, job, userId, skillsIds } = input;
 
         const cv=await prisma.cv.findUnique({
             where:{id}
@@ -47,33 +35,26 @@ export const Mutation={
             throw new Error(`CV with id ${id} not found`);
         }
         if(userId){
-            const user=await prisma.user.findUnique({
-                where:{id:userId}
+            await ensureUserExists(prisma, userId);
+        }
+        if (skillsIds !== undefined) {
+            await ensureSkillsExist(prisma, skillsIds);
+        }
+        const updateData = {
+            ...(name !== undefined && { name }),
+            ...(age !== undefined && { age }),
+            ...(job !== undefined && { job }),
+            ...(userId !== undefined && { ownerId: userId }),
+            ...(skillsIds !== undefined && {
+                skills: {
+                    deleteMany: {},
+                    create: skillsIds.map((skillId) => ({ skillId }))
+                }
             })
-            if(!user){
-                throw new Error(`User with id ${userId} not found`);
-            }
-        }
-          if (skillsIds) {
-            for (const skillId of skillsIds) {
-                const skill = await prisma.skill.findUnique({ where: { id: skillId } });
-                if (!skill) throw new Error(`Skill with id ${skillId} not found`);
-            }
-        }
+        };
         const updatceCv=await prisma.cv.update({
             where:{id},
-            data:{
-                ...name && { name:name },
-                ...age && { age:age },
-                ...job && { job:job },
-                ...userId && { ownerId:userId },
-                ...skillsIds && {
-                    skills:{
-                        deleteMany:{},
-                        create: skillsIds.map((skillId) => ({ skillId }))
-                    }
-            }
-        }
+            data: updateData
     })
         pubSub.publish("cvEvent", { cvEvent: { cv: updatceCv, mutationType: "UPDATED" } });
         return updatceCv;
